@@ -1,53 +1,50 @@
 {-|
 This module implements Disjunction Category labels.
 
-A DCLabel is a pair of 'secrecy' and 'integrity' category sets (of type 'Label').
-A category set (of type 'Conj') is a conjunction of categories (of type 'Disj').
-Each category, in turn, is a disjunction of 'Principal's, where a 'Principal' 
-is just a 'String' whose meaning is up to the application.
+A DCLabel is a pair of 'secrecy' and 'integrity' category sets (of type
+'Label').  A category set (of type 'Conj') is a conjunction of categories
+(of type 'Disj').  Each category, in turn, is a disjunction of 'Principal's,
+where a 'Principal' is just a 'String' whose meaning is up to the application.
 
-A category imposes an information flow restriction. In the case of secrecy, a 
-category restricts who can read, receive, or propagate the information, while in 
-the case of integrity it restricts who can modify a piece of data. The 
-principals constructing a category are said to /own/ the category.
+A category imposes an information flow restriction. In the case of secrecy,
+a category restricts who can read, receive, or propagate the information,
+while in the case of integrity it restricts who can modify a piece of
+data. The principals constructing a category are said to /own/ the category.
 
-For information to flow from a source labeled @L_1@ to a sink @L_2@, the 
-restrictions imposed by the categories of @L_2@ must at least as restrictive as 
+For information to flow from a source labeled @L_1@ to a sink @L_2@, the
+restrictions imposed by the categories of @L_2@ must at least as restrictive as
 all the restrictions imposed by the categories of @L_1@ (hence the conjunction)
 in the case of secrecy, and at least as permissive in the case of integrity.
-More specifically, for information to flow from @L_1@ to @L_2@,
-the labels must satisfy the \"can-flow-to\" relation: @L_1 &#8849; L_2@.
-The &#8849; label check is implemented by the 'canflowto' function.
-For labels @L_1=\<S_1, I_1\>@, @L_2=\<S_2, I_2\>@ the can-flow-to relation is 
-satisfied if the secrecy category set @S_2@ 'implies' @S_1@ and @I_1@ 
-'implies' @I_2@ (recall that a category set is a conjunction of 
-disjunctions of principals).
-For example, @\<{[P_1 &#8897; P_2]},{}\> &#8849; \<{[P_1]},{}\>@ because data 
-that can be read by @P_1@ is more restricting than that readable by @P_1@ or 
-@P_2@. Conversely, @\<{{},[P_1]}\> &#8849; \<{},[P_1 &#8897; P_2]},{}\>@ because
-data vouched for by @P_1@ or @P_2@ is more permissive than just @P_1@ (note 
-the same idea holds when writing to sinks with such labeling).
+More specifically, for information to flow from @L_1@ to @L_2@, the labels
+must satisfy the \"can-flow-to\" relation: @L_1 &#8849; L_2@.  The &#8849;
+label check is implemented by the 'canflowto' function.  For labels
+@L_1=\<S_1, I_1\>@, @L_2=\<S_2, I_2\>@ the can-flow-to relation is satisfied
+if the secrecy category set @S_2@ 'implies' @S_1@ and @I_1@ 'implies' @I_2@
+(recall that a category set is a conjunction of disjunctions of principals).
+For example, @\<{[P_1 &#8897; P_2]},{}\> &#8849; \<{[P_1]},{}\>@ because data
+that can be read by @P_1@ is more restricting than that readable by @P_1@
+or @P_2@. Conversely, @\<{{},[P_1]}\> &#8849; \<{},[P_1 &#8897; P_2]},{}\>@
+because data vouched for by @P_1@ or @P_2@ is more permissive than just @P_1@
+(note the same idea holds when writing to sinks with such labeling).
 
 A piece of a code running with a privilege object (of type 'TCBPriv'), i.e.,
-owning a 'Principal' confers the right to modify
-labels by removing any 'secrecy' categories containing that 'Principal' and
-adding any 'integrity' categories containing the 'Principal' 
-(hence the name disjunction categories: the category @[P1 &#8897; P2]@ can be
-/downgraded/ by either 'Principal' @P1@ or @P2@).
-More specifically, privileges can be used to bypass information flow restrictions
-by using the more permissive \"can-flow-to given permission\"
-relation:&#8849;&#7528;. The label check function implementing this restriction
-is 'canflowto_p', taking an additional argument (of type 'TCBPriv'). For
-example, if
-@L_1=\<{[P_1 &#8897; P_2] &#8896; [P_3]},{}\>@, and @L_2=\<{[P_1]},{}\>@, then
-@L_1 &#8930; L_2@, but given a privilege object corresponding to @[P_3]@ the
-@L_1 &#8849;&#7528; L_2@ holds.
+owning a 'Principal' confers the right to modify labels by removing any
+'secrecy' categories containing that 'Principal' and adding any 'integrity'
+categories containing the 'Principal' (hence the name disjunction categories:
+the category @[P1 &#8897; P2]@ can be /downgraded/ by either 'Principal'
+@P1@ or @P2@).  More specifically, privileges can be used to bypass
+information flow restrictions by using the more permissive \"can-flow-to given
+permission\" relation:&#8849;&#7528;. The label check function implementing
+this restriction is 'canflowto_p', taking an additional argument (of type
+'TCBPriv'). For example, if @L_1=\<{[P_1 &#8897; P_2] &#8896; [P_3]},{}\>@,
+and @L_2=\<{[P_1]},{}\>@, then @L_1 &#8930; L_2@, but given a privilege
+object corresponding to @[P_3]@ the @L_1 &#8849;&#7528; L_2@ holds.
 
-To construct DC labels and privilege objects the constructors exported by this 
-module may be used, but we strongly suggest using "DCLabel.NanoEDSL" as exported by 
-"DCLabel.TCB" and "DCLabel.Safe". The former is to be used by trusted code 
-only, while the latter module should be imported by untrusted code as it prevents the
-creation of arbitrary privileges.
+To construct DC labels and privilege objects the constructors exported by
+this module may be used, but we strongly suggest using "DCLabel.NanoEDSL"
+as exported by "DCLabel.TCB" and "DCLabel.Safe". The former is to be used by
+trusted code only, while the latter module should be imported by untrusted
+code as it prevents the creation of arbitrary privileges.
 
 -}
 
@@ -200,11 +197,11 @@ or_label l1 l2 | isEmptyLabel l1 || isEmptyLabel l2 = emptyLabel
 --
 -- Properties:
 --
--- 	* &#8704; X, 'allLabel' \``impliesDisj`\` X = True
+--      * &#8704; X, 'allLabel' \``impliesDisj`\` X = True
 --
 --      * &#8704; X, X \``impliesDisj`\` 'emptyLabel'  = True
 --
---      * &#8704; X&#8800;'emptyLabel',  'emptyLabel' \``impliesDisj`\` X = False              
+--      * &#8704; X&#8800;'emptyLabel', 'emptyLabel' \``impliesDisj`\` X = False
 --
 -- Note that the first two guards are only included 
 -- for safety; the function is always called with a non-ALL label and 
@@ -348,9 +345,9 @@ Note that the privileges form a partial order over @=>@, such that
 @'rootPrivTCB' => P@ and @P => 'noPriv'@ for any privilege @P@.
 As such we have a privilege hierarchy which can be concretely built through 
 delegation, with 'rootPrivTCB' corresponding to the /root/, or all, privileges
-from which all others may be created. More specifically, given a minted privilege 
-@P'@ of type 'TCBPriv', and an un-minted privilege @P@ of type 'Priv', any 
-piece of code can use 'delegatePriv' to mint @P@, assuming @P' => P@.
+from which all others may be created. More specifically, given a minted
+privilege @P'@ of type 'TCBPriv', and an un-minted privilege @P@ of type 'Priv',
+any piece of code can use 'delegatePriv' to mint @P@, assuming @P' => P@.
 
 Finally, given a set of privileges a piece of code can check if it owns a 
 category using the 'owns' function.

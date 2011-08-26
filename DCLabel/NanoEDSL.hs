@@ -61,10 +61,11 @@ where
 module DCLabel.NanoEDSL ( -- * Operators
 			  (.\/.), (./\.)
                         , (<>), (><)
+                        , singleton
                           -- * DCLabel creation
                         , newDC
                           -- * Privilege object creation
-                        , newPriv, newTCBPriv
+                        , NewPriv, newPriv, newTCBPriv
                         ) where
 
 import DCLabel.Core

@@ -10,7 +10,7 @@ anything unsafe.
 module DCLabel.Safe ( -- * DC Labels with EDSL
 	              join, meet, top, bottom, canflowto
 	            , Label, DCLabel, secrecy, integrity
-                    , principal
+                    , principal, singleton
                     , listToDisj, disjToList
 		    , listToLabel, labelToList
                     , (.\/.), (./\.)
@@ -21,7 +21,7 @@ module DCLabel.Safe ( -- * DC Labels with EDSL
                     , canflowto_p
                     , delegatePriv
                     , canDelegate, owns
-                    , newPriv, newTCBPriv
+                    , newPriv, NewPriv, newTCBPriv
                     ) where
 
 import DCLabel.Core
