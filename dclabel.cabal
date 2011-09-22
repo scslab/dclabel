@@ -30,9 +30,10 @@ Description:
         (<http://www.scs.stanford.edu/~deian/>), and Alejandro Russo
         (<http://www.cse.chalmers.se/~russo/>).
 
-        To obtain the latest experimental source code, run:
+Source-repository head
+  Type:     git
+  Location: http://www.scs.stanford.edu/~deian/dclabels/dclabel.git
 
-        @git clone http:\/\/www.scs.stanford.edu\/~deian\/dclabels/dclabel.git@
 
 Library 
    Build-depends: base >= 4 && < 5, 
