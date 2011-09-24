@@ -1,3 +1,9 @@
+{-# LANGUAGE CPP #-}
+#if defined(__GLASGOW_HASKELL__) && (__GLASGOW_HASKELL__ >= 702)
+{-# LANGUAGE Trustworthy #-}
+#else
+#warning "This module is not using SafeHaskell"
+#endif
 {-|
 This module exports a safe-subset of "DCLabel.Core",
 implementing Disjunction Category Labels. 
@@ -26,12 +32,3 @@ module DCLabel.Safe ( -- * DC Labels with EDSL
 
 import DCLabel.Core
 import DCLabel.NanoEDSL
-
-
-
-
-
-
-
-
-

@@ -7,7 +7,7 @@ import DCLabel.PrettyShow
 import DCLabel.Secrecy
 import DCLabel.Integrity
 import Data.List (tails)
-import System (getArgs)
+import System.Environment (getArgs)
 
 instance Arbitrary Principal where 
      arbitrary = do p <- oneof $ map return ["A", "B", "C"]
@@ -125,11 +125,24 @@ prop_dc_bottom l1 = forAll (arbitrary :: Gen DCLabel) $ \l -> bottom `canflowto`
 
 -- LIO's lostar
 lostar :: TCBPriv -> DCLabel -> DCLabel -> DCLabel
-lostar p li lg = 
-  let lip = newDC (secrecy li) ((integrity li) ./\. lp)
-      lgp = newDC ((secrecy lg) ./\. lp) (integrity lg)
-      lp  = priv p
-  in join lip lgp
+lostar p l g = 
+  let (ls, li) = (toLNF . secrecy $ l, toLNF . integrity $ l)
+      (gs, gi) = (toLNF . secrecy $ g, toLNF . integrity $ g)
+      lp       = toLNF $ priv p
+      rs'      = c2l [c | c <- getCats ls
+                        , not (lp `implies` (c2l [c]))]
+      rs''     = c2l [c | c <- getCats gs
+                        , not (rs' `implies` (c2l [c]))]
+      rs       = if ls == allLabel || gs == allLabel
+                  then allLabel
+                  else rs' `and_label` rs''
+      ri       = (li `and_label` lp) `or_label` gi
+ in toLNF $ simpleNewLabel p (newDC rs ri)
+      where getCats = conj . label
+            c2l = MkLabel . MkConj
+            simpleNewLabel p lr | p == rootPrivTCB = g   
+                                | p == noPriv      = l `join` g
+                                | otherwise        = lr
 
 {-
 lr = lostar p li lg satisfies:

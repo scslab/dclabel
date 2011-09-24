@@ -1,21 +1,21 @@
 Name:           dclabel
-Version:        0.0.1
+Version:        0.0.2
 build-type:     Simple
 License:        BSD3
 License-File:   LICENSE
-Copyright:      (c) 2011 Deian Stefan, David Mazieres, Alejandro Russo
-Author:         Deain Stefan, David Mazieres, Alejandro Russo
-Maintainer:	Deian Stefan  <deian at cs dot stanford dot edu>,
-		Alejandro Russo < russo at chalmers dot se >,
+Copyright:      (c) 2011 Deian Stefan, Alejandro Russo, John C. Mitchell, David Mazieres
+Author:         Deian Stefan, Alejandro Russo
+Maintainer:	Deian Stefan  <deian at cs dot stanford dot edu>
 Stability:      experimental
-Synopsis:       The Disjunction Category Label Format.
+Synopsis:       The Disjunction Category Label Format
 Category:       Security
 Cabal-Version:  >=1.6
 
 Extra-source-files:
-     Examples/UsingEDSL.hs,
-     Examples/Labels.hs,
-     Examples/ExamplesDCLabels.hs,
+     Examples/ExamplesDCLabels.hs
+     Examples/Labels.hs
+     Examples/ListExamples.hs
+     Examples/UsingEDSL.hs
      Tests/Main.hs
 
 Description:

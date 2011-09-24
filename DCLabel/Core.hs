@@ -1,3 +1,7 @@
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 {-|
 This module implements Disjunction Category labels.
 
@@ -48,9 +52,6 @@ code as it prevents the creation of arbitrary privileges.
 
 -}
 
-{-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 module DCLabel.Core ( -- * Labels 
 		      -- $labels
                       Disj(..), Conj(..), Label(..)
@@ -228,7 +229,7 @@ impliesDisj l d | isAllLabel l = True   -- Asserts 1
 implies :: Label -> Label -> Bool 
 implies l1 l2 | isAllLabel l1 = True -- Asserts 1
               | isAllLabel l2 = False -- Asserts 2
-              | otherwise = and [ impliesDisj l1 d 
+              | otherwise = and [ impliesDisj (toLNF l1) d 
                                 | d <- conj . label . toLNF $ l2 ]
 
 

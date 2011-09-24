@@ -1,3 +1,13 @@
+{-# LANGUAGE CPP #-}
+#if defined(__GLASGOW_HASKELL__) && (__GLASGOW_HASKELL__ >= 702)
+{-# LANGUAGE Trustworthy #-}
+#else
+#warning "This module is not using SafeHaskell"
+#endif
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+
 {-| This module implements a ``nano``, very simple, embedded domain specific
   language to create 'Label's and 'Priv'ilages from conjunctions of
   principal disjunctions.
@@ -54,10 +64,6 @@ where
 
 -}
 
-
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE FlexibleInstances #-}
 module DCLabel.NanoEDSL ( -- * Operators
 			  (.\/.), (./\.)
                         , (<>), (><)

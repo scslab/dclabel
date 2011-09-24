@@ -1,3 +1,4 @@
+{-# LANGUAGE Safe #-}
 module Labels where 
 
 import DCLabel.Safe

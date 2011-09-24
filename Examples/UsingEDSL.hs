@@ -1,3 +1,4 @@
+{-# LANGUAGE Safe #-}
 module UsingEDSL where 
 
 import DCLabel.Safe

@@ -1,3 +1,4 @@
+{-# LANGUAGE Trustworthy #-}
 module ExamplesDCLabels where 
 
 import DCLabel.TCB

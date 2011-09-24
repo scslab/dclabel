@@ -1,3 +1,4 @@
+{-# LANGUAGE Safe #-}
 module ListExamples where
 
 import DCLabel.Safe

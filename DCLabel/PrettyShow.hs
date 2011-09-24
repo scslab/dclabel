@@ -1,3 +1,9 @@
+{-# LANGUAGE CPP #-}
+#if defined(__GLASGOW_HASKELL__) && (__GLASGOW_HASKELL__ >= 702)
+{-# LANGUAGE Trustworthy #-}
+#else
+#warning "This module is not using SafeHaskell"
+#endif
 {-| This module exports a function 'prettyShow' that pretty prints 'Principal's,
 'Disj'unctions, 'Conj'unctions, 'Label's and 'DCLabel's.
 -}
