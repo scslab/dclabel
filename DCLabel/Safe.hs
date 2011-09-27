@@ -16,7 +16,7 @@ anything unsafe.
 module DCLabel.Safe ( -- * DC Labels with EDSL
 	              join, meet, top, bottom, canflowto
 	            , Label(..), DCLabel(..), Disj(..), Conj(..)
-                    , Principal, principal, singleton
+                    , Principal, principal, name, singleton
                     , listToDisj, disjToList
 		    , listToLabel, labelToList
                     , (.\/.), (./\.)
