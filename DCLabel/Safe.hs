@@ -15,7 +15,7 @@ anything unsafe.
 
 module DCLabel.Safe ( -- * DC Labels with EDSL
 	              join, meet, top, bottom, canflowto
-	            , Label, DCLabel, secrecy, integrity
+	            , Label(..), DCLabel(..), Disj(..), Conj(..)
                     , principal, singleton
                     , listToDisj, disjToList
 		    , listToLabel, labelToList
@@ -31,4 +31,9 @@ module DCLabel.Safe ( -- * DC Labels with EDSL
                     ) where
 
 import DCLabel.Core
+
+#if defined(__GLASGOW_HASKELL__) && (__GLASGOW_HASKELL__ >= 702)
+import safe DCLabel.NanoEDSL
+#else
 import DCLabel.NanoEDSL
+#endif
