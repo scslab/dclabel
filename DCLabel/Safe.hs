@@ -27,7 +27,7 @@ module DCLabel.Safe ( -- * DC Labels with EDSL
                     , canflowto_p
                     , delegatePriv
                     , canDelegate, owns
-                    , newPriv, NewPriv, newTCBPriv
+                    , newPriv, NewPriv, newTCBPriv, noPriv
                     ) where
 
 import DCLabel.Core
