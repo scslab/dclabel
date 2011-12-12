@@ -1,5 +1,5 @@
 Name:           dclabel
-Version:        0.0.2
+Version:        0.0.3
 build-type:     Simple
 License:        BSD3
 License-File:   LICENSE
@@ -37,8 +37,11 @@ Source-repository head
 
 Library 
    Build-depends: base >= 4 && < 5, 
+                  bytestring > 0.9.2 && < 2,
                   pretty > 1.0.1 && < 2,
                   QuickCheck >= 2.1
+
+   ghc-options: -Wall -Werror -fno-warn-orphans
 
    Exposed-modules:
        DCLabel.Safe,

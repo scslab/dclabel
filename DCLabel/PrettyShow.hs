@@ -1,8 +1,6 @@
 {-# LANGUAGE CPP #-}
 #if defined(__GLASGOW_HASKELL__) && (__GLASGOW_HASKELL__ >= 702)
 {-# LANGUAGE Trustworthy #-}
-#else
-#warning "This module is not using SafeHaskell"
 #endif
 {-| This module exports a function 'prettyShow' that pretty prints 'Principal's,
 'Disj'unctions, 'Conj'unctions, 'Label's and 'DCLabel's.
@@ -12,7 +10,12 @@ module DCLabel.PrettyShow (PrettyShow(..), prettyShow) where
 import DCLabel.Core
 import DCLabel.Secrecy
 import DCLabel.Integrity
+#if defined(__GLASGOW_HASKELL__) && (__GLASGOW_HASKELL__ >= 702)
+-- import safe Text.PrettyPrint
 import Text.PrettyPrint
+#else
+import Text.PrettyPrint
+#endif
 
 
 
@@ -28,7 +31,7 @@ instance PrettyShow Disj where
 	pShow (MkDisj xs) = bracks $ showDisj xs
                 where showDisj []     = empty
                       showDisj [x]    = pShow x 
-                      showDisj (x:xs) = pShow x <+> ( text "\\/") <+> showDisj xs
+                      showDisj (x:ys) = pShow x <+> ( text "\\/") <+> showDisj ys
 		      bracks x = lbrack <> x <> rbrack
 
 instance PrettyShow Conj where 
@@ -38,8 +41,8 @@ instance PrettyShow Conj where
         
 instance PrettyShow Label where 
 	pShow MkLabelAll     = braces $ text "ALL"
-	pShow l = let (MkLabel conj) = toLNF l
-                  in braces $ pShow conj
+	pShow l = let (MkLabel c) = toLNF l
+                  in braces $ pShow c
 
 instance PrettyShow DCLabel where 
 	pShow (MkDCLabel s  i) = angle $ pShow s <+> comma <+> pShow i

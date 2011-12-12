@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if defined(__GLASGOW_HASKELL__) && (__GLASGOW_HASKELL__ >= 702)
+{-# LANGUAGE SafeImports #-}
+#endif
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -76,9 +80,19 @@ module DCLabel.Core ( -- * Labels
                     ) where
 
 
+#if defined(__GLASGOW_HASKELL__) && (__GLASGOW_HASKELL__ >= 702)
+import safe Data.List (nub, sort, (\\))
+import safe Data.Maybe (fromJust)
+import safe Data.Monoid
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as C
+#else
 import Data.List (nub, sort, (\\))
 import Data.Maybe (fromJust)
 import Data.Monoid
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as C
+#endif
 
 --
 -- Categories
@@ -318,12 +332,12 @@ instance Lattice DCLabel where
 -- of code can create principals, regarless of how untrusted it is. However, 
 -- for principals to be used in integrity labels or be ignoerd a corresponding 
 -- privilege ('TCBPriv') must be created (by trusted code) or delegated.
-newtype Principal = MkPrincipal { name :: String }
+newtype Principal = MkPrincipal { name :: B.ByteString }
                   deriving (Eq, Ord, Show, Read)
 
 -- | Generates a principal from an string. 
-principal :: String -> Principal 
-principal = MkPrincipal
+principal :: B.ByteString -> Principal 
+principal = MkPrincipal 
 
 
 --
@@ -459,6 +473,11 @@ instance DisjToFromList Principal where
   	
 -- | To/from 'String's and 'Disj'unction categories.
 instance DisjToFromList String where
+  listToDisj ps = MkDisj $ map (principal . C.pack) ps
+  disjToList d = map (C.unpack . name) $ disj d
+
+-- | To/from 'ByteString's and 'Disj'unction categories.
+instance DisjToFromList B.ByteString where
   listToDisj ps = MkDisj $ map principal ps
   disjToList d = map name $ disj d
 

@@ -1,8 +1,6 @@
 {-# LANGUAGE CPP #-}
 #if defined(__GLASGOW_HASKELL__) && (__GLASGOW_HASKELL__ >= 702)
 {-# LANGUAGE Trustworthy #-}
-#else
-#warning "This module is not using SafeHaskell"
 #endif
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeSynonymInstances #-}
@@ -75,6 +73,8 @@ module DCLabel.NanoEDSL ( -- * Operators
                         ) where
 
 import DCLabel.Core
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as C
 
 infixl 7 .\/.
 infixl 6 ./\.
@@ -87,6 +87,9 @@ instance Singleton Principal where
       singleton p = MkLabel $ MkConj [ MkDisj [p] ]
 
 instance Singleton String where 
+      singleton s = singleton (C.pack s)
+
+instance Singleton B.ByteString where 
       singleton s = MkLabel $ MkConj [ MkDisj [principal s] ]
 
 
