@@ -90,14 +90,17 @@ module DCLabel.Core ( -- * Components
 import safe Data.List (nub, sort, (\\))
 import safe Data.Maybe (fromJust)
 import safe Data.Monoid
+import safe Data.Functor ((<$>))
 #else
 import Data.List (nub, sort, (\\))
 import Data.Maybe (fromJust)
 import Data.Monoid
+import safe Data.Functor ((<$>))
 #endif
 
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as C
+import Data.Serialize
 
 --
 -- Categories
@@ -502,3 +505,37 @@ listToComponent = MkComponent . MkConj
 -- | Given a component return a list of categories.
 componentToList :: Component -> [Disj] -- ^ Given category return list.
 componentToList = conj . component
+
+
+
+--
+-- Serialize instances
+-- 
+
+
+instance Serialize Principal where
+  put = put . name
+  get = MkPrincipal <$> get
+
+instance Serialize Disj where
+  put = put . disj
+  get = MkDisj <$> get
+
+instance Serialize Conj where
+  put = put . conj
+  get = MkConj <$> get
+
+instance Serialize Component where
+  put c | c == MkComponentAll = put (Nothing :: Maybe Conj)
+        | otherwise           = put (Just $ component c)
+  get = do mc <- get
+           case mc of
+             Nothing -> return MkComponentAll 
+             Just c -> return $ MkComponent c
+
+instance Serialize DCLabel where
+  put (MkDCLabel s i) = put s >> put i
+  get = do s <- get
+           i <- get
+           return $ MkDCLabel s i
+

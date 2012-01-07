@@ -1,14 +1,16 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Main (main) where
 
+import Test.Framework (Test, defaultMain)
+import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 import Control.Monad (liftM)
 import DCLabel.TCB
-import DCLabel.PrettyShow
 import DCLabel.Secrecy
 import DCLabel.Integrity
 import Data.List (tails)
-import System.Environment (getArgs)
+import Data.Serialize
 
 instance Arbitrary Principal where 
      arbitrary = do p <- oneof $ map return ["A", "B", "C"]
@@ -122,7 +124,7 @@ prop_dc_top l1 = forAll (gen l1) $ \l -> l `canflowto` top
 
 -- Check that the bottom is indeed indeed the lowest element in the lattice
 prop_dc_bottom :: DCLabel -> Property
-prop_dc_bottom l1 = forAll (arbitrary :: Gen DCLabel) $ \l -> bottom `canflowto` l
+prop_dc_bottom _ = forAll (arbitrary :: Gen DCLabel) $ \l -> bottom `canflowto` l
 
 -- LIO's lostar
 lostar :: TCBPriv -> DCLabel -> DCLabel -> DCLabel
@@ -141,9 +143,9 @@ lostar p l g =
  in toLNF $ simpleNewComponent p (newDC rs ri)
       where getCats = conj . component
             c2l = MkComponent . MkConj
-            simpleNewComponent p lr | p == rootPrivTCB = g   
-                                | p == noPriv      = l `join` g
-                                | otherwise        = lr
+            simpleNewComponent pr lr | pr == rootPrivTCB = g   
+                                     | pr == noPriv      = l `join` g
+                                     | otherwise         = lr
 
 {-
 lr = lostar p li lg satisfies:
@@ -161,29 +163,33 @@ prop_lostar p li lg =
               canflowto_p p li lr' &&
 	      lr' /= lr &&
 	      canflowto lr' lr)
-main = do 
-  putStrLn "Run program with number of runs"
-  n <- getArgs >>= return . read . head
-  let args = stdArgs { maxSuccess = n, maxSize = n, maxDiscard = 10000}
-  putStrLn "Checking function cleanComponent..."
-  quickCheckWith args (prop_cleanComponent :: Component -> Bool)
-  putStrLn "Checking function toLNF..."
-  quickCheckWith args (prop_toLNF :: Component -> Bool)
-  putStrLn "Checking idempotence of function toLNF..."
-  quickCheckWith args (prop_toLNF_idem :: Property)
-  putStrLn "Checking the property of top..."
-  quickCheckWith args (prop_dc_top :: DCLabel -> Property)
-  putStrLn "Checking the property of bottom..."
-  quickCheckWith args (prop_dc_bottom :: DCLabel -> Property)
-  putStrLn "Checking the join operation..."
-  quickCheckWith args (prop_DC_join ::  (DCLabel, DCLabel) -> Bool)
-  putStrLn "Checking the join operation is indeed the least upper bound..."
-  quickCheckWith args (prop_dc_join_lub :: (DCLabel, DCLabel) -> Property)
-  putStrLn "Checking the meet operation..."
-  quickCheckWith args (prop_dc_meet :: (DCLabel, DCLabel) -> Bool)
-  putStrLn "Checking the meet operation is indeed the greatest lower bound..."
-  quickCheckWith args (prop_dc_meet_glb :: (DCLabel, DCLabel) -> Property)
-  putStrLn "Checking DC labels form a partial order..."
-  quickCheckWith args (prop_dc_porder :: (DCLabel, DCLabel) -> Bool)
-  putStrLn "Checking lostar implementation..."
-  quickCheckWith args (prop_lostar :: TCBPriv -> DCLabel -> DCLabel -> Property)
+
+-- | Test serialization.
+prop_DC_serialize :: DCLabel -> Bool
+prop_DC_serialize l = case decode (encode l) of
+                        Left _ -> False
+                        Right l' -> l == l'
+
+main :: IO ()
+main = defaultMain tests
+
+tests :: [Test]
+tests = [
+    testProperty "cleanComponent" (prop_cleanComponent :: Component -> Bool)
+  , testProperty "toLNF" (prop_toLNF :: Component -> Bool)
+  , testProperty "Idempotence of function toLNF" (prop_toLNF_idem :: Property)
+  , testProperty "Property of top" (prop_dc_top :: DCLabel -> Property)
+  , testProperty "Property of bottom" (prop_dc_bottom :: DCLabel -> Property)
+  , testProperty "Join operation" (prop_DC_join ::  (DCLabel, DCLabel) -> Bool)
+  , testProperty "Join operation is the least upper bound"
+                 (prop_dc_join_lub :: (DCLabel, DCLabel) -> Property)
+  , testProperty "Meet operation" (prop_dc_meet :: (DCLabel, DCLabel) -> Bool)
+  , testProperty "Meet operation is the greatest lower bound"
+                 (prop_dc_meet_glb :: (DCLabel, DCLabel) -> Property)
+  , testProperty "DC labels form a partial order"
+                  (prop_dc_porder :: (DCLabel, DCLabel) -> Bool)
+  , testProperty "lostar implementation"
+                  (prop_lostar :: TCBPriv -> DCLabel -> DCLabel -> Property)
+  , testProperty "Serialization of DC labels"
+              (prop_DC_serialize :: DCLabel -> Bool)
+  ]
