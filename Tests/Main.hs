@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main (main) where
 
-import Test.QuickCheck hiding (label) 
+import Test.QuickCheck
 import Control.Monad (liftM)
 import DCLabel.TCB
 import DCLabel.PrettyShow
@@ -35,12 +35,12 @@ instance Arbitrary Conj where
                                           return $ MkConj $ a:(conj cjs)     
      shrink (MkConj ls) = [MkConj ll | l <- tails ls, ll <- shrink l]
 
-instance Arbitrary Label where
+instance Arbitrary Component where
   arbitrary = do m <- choose (0, 1) :: Gen Int
                  if m==0 then mkArbLbl arbitrary
-			 else return MkLabelAll
-    where mkArbLbl :: Gen Conj -> Gen Label
-          mkArbLbl = liftM MkLabel
+			 else return MkComponentAll
+    where mkArbLbl :: Gen Conj -> Gen Component
+          mkArbLbl = liftM MkComponent
 
 instance Arbitrary (SLabel) where
   arbitrary = do s <- arbitrary
@@ -59,19 +59,19 @@ instance Arbitrary TCBPriv where
   arbitrary = do p <- arbitrary
                  return $ MkTCBPriv p
 
--- cleanLabel does not modify the semantics of the label 
-prop_cleanLabel :: Label -> Bool
-prop_cleanLabel l = let l' = cleanLabel l 
+-- cleanComponent does not modify the semantics of the label 
+prop_cleanComponent :: Component -> Bool
+prop_cleanComponent l = let l' = cleanComponent l 
                     in l `implies` l' && l' `implies` l
 
 -- Reduction function toLNF does not modify the semantics of the label
-prop_toLNF :: Label -> Bool
+prop_toLNF :: Component -> Bool
 prop_toLNF l = let l' = toLNF l 
                in  l `implies` l' && l' `implies` l 
 
 -- Idempotenncy of toLNF
 prop_toLNF_idem :: Property
-prop_toLNF_idem = forAll (arbitrary :: Gen Label) $ \l->
+prop_toLNF_idem = forAll (arbitrary :: Gen Component) $ \l->
   let l'  = toLNF l 
       l'' = toLNF l' 
   in l' == l''
@@ -134,14 +134,14 @@ lostar p l g =
                         , not (lp `implies` (c2l [c]))]
       rs''     = c2l [c | c <- getCats gs
                         , not (rs' `implies` (c2l [c]))]
-      rs       = if ls == allLabel || gs == allLabel
-                  then allLabel
-                  else rs' `and_label` rs''
-      ri       = (li `and_label` lp) `or_label` gi
- in toLNF $ simpleNewLabel p (newDC rs ri)
-      where getCats = conj . label
-            c2l = MkLabel . MkConj
-            simpleNewLabel p lr | p == rootPrivTCB = g   
+      rs       = if ls == allComponent || gs == allComponent
+                  then allComponent
+                  else rs' `and_component` rs''
+      ri       = (li `and_component` lp) `or_component` gi
+ in toLNF $ simpleNewComponent p (newDC rs ri)
+      where getCats = conj . component
+            c2l = MkComponent . MkConj
+            simpleNewComponent p lr | p == rootPrivTCB = g   
                                 | p == noPriv      = l `join` g
                                 | otherwise        = lr
 
@@ -165,10 +165,10 @@ main = do
   putStrLn "Run program with number of runs"
   n <- getArgs >>= return . read . head
   let args = stdArgs { maxSuccess = n, maxSize = n, maxDiscard = 10000}
-  putStrLn "Checking function cleanLabel..."
-  quickCheckWith args (prop_cleanLabel :: Label -> Bool)
+  putStrLn "Checking function cleanComponent..."
+  quickCheckWith args (prop_cleanComponent :: Component -> Bool)
   putStrLn "Checking function toLNF..."
-  quickCheckWith args (prop_toLNF :: Label -> Bool)
+  quickCheckWith args (prop_toLNF :: Component -> Bool)
   putStrLn "Checking idempotence of function toLNF..."
   quickCheckWith args (prop_toLNF_idem :: Property)
   putStrLn "Checking the property of top..."

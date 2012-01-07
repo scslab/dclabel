@@ -7,10 +7,10 @@
 {-# LANGUAGE FlexibleInstances #-}
 
 {-| This module implements a ``nano``, very simple, embedded domain specific
-  language to create 'Label's and 'Priv'ilages from conjunctions of
+  language to create 'Component's and 'Priv'ilages from conjunctions of
   principal disjunctions.
   
-  A 'Label'/'Priv' is created using the ('.\/.') and ('./\.') operators.
+  A 'Component'/'Priv' is created using the ('.\/.') and ('./\.') operators.
   The disjunction operator ('.\/.') is used to create a category from
   'Principal's, 'String's, or a disjunctive sub-expression. For example:
 
@@ -35,7 +35,7 @@
   category set is composed of the conjunction of categories, ('.\/.') binds
   more tightly than ('./\.').
 
-  Given two 'Label's, one for secrecy and one for integrity, you can
+  Given two 'Component's, one for secrecy and one for integrity, you can
   create a 'DCLabel' with 'newDC'. And, similarly, given a 'TCBPriv' and 'Priv' 
   you can create a new minted privilege with 'newTCBPriv'.
   
@@ -81,78 +81,78 @@ infixl 6 ./\.
 
 -- | Class used to create single-principal labels.
 class Singleton a where 
-      singleton :: a -> Label -- ^ Creates a singleton label.
+      singleton :: a -> Component -- ^ Creates a singleton component.
 
 instance Singleton Principal where 
-      singleton p = MkLabel $ MkConj [ MkDisj [p] ]
+      singleton p = MkComponent $ MkConj [ MkDisj [p] ]
 
 instance Singleton String where 
       singleton s = singleton (C.pack s)
 
 instance Singleton B.ByteString where 
-      singleton s = MkLabel $ MkConj [ MkDisj [principal s] ]
+      singleton s = MkComponent $ MkConj [ MkDisj [principal s] ]
 
 
 -- | Class used to create disjunctions.
 class DisjunctionOf a b where
-  (.\/.) :: a -> b -> Label -- ^ Given two elements it joins them with &#8897;
+  (.\/.) :: a -> b -> Component -- ^ Given two elements it joins them with &#8897;
 
 instance DisjunctionOf Principal Principal where
- p1 .\/. p2 = MkLabel $ MkConj [ MkDisj [p1,p2] ]
+ p1 .\/. p2 = MkComponent $ MkConj [ MkDisj [p1,p2] ]
 
-instance DisjunctionOf Principal Label where
- p .\/. l = (singleton p) `or_label` l 
+instance DisjunctionOf Principal Component where
+ p .\/. l = (singleton p) `or_component` l 
 
-instance DisjunctionOf Label Principal where
+instance DisjunctionOf Component Principal where
  l .\/. p = p .\/. l
 
-instance DisjunctionOf Label Label where
- l1 .\/. l2 = l1 `or_label` l2
+instance DisjunctionOf Component Component where
+ l1 .\/. l2 = l1 `or_component` l2
 
 instance DisjunctionOf String String where
  s1 .\/. s2 = singleton s1 .\/. singleton s2
 
-instance DisjunctionOf String Label where
+instance DisjunctionOf String Component where
   s .\/. l = singleton s .\/. l 
 
-instance DisjunctionOf Label String where
+instance DisjunctionOf Component String where
   l .\/. p = p .\/. l  
 
 
 -- | Class used to create conjunctions.
 class ConjunctionOf a b where
-  (./\.) :: a -> b -> Label -- ^ Given two elements it joins them with &#8896;
+  (./\.) :: a -> b -> Component -- ^ Given two elements it joins them with &#8896;
 
 instance ConjunctionOf Principal Principal where
-   p1 ./\. p2 = MkLabel $ MkConj [ MkDisj [p1], MkDisj [p2] ] 
+   p1 ./\. p2 = MkComponent $ MkConj [ MkDisj [p1], MkDisj [p2] ] 
 
-instance ConjunctionOf Principal Label where
-   p ./\. l = singleton p `and_label` l 
+instance ConjunctionOf Principal Component where
+   p ./\. l = singleton p `and_component` l 
 
-instance ConjunctionOf Label Principal where
+instance ConjunctionOf Component Principal where
    l ./\. p = p ./\. l 
 
-instance ConjunctionOf Label Label where
-   l1 ./\. l2 = l1 `and_label` l2 
+instance ConjunctionOf Component Component where
+   l1 ./\. l2 = l1 `and_component` l2 
 
 -- | Instances using strings and not principals
 instance ConjunctionOf String String where
    s1 ./\. s2 = singleton s1 ./\. singleton s2 
 
-instance ConjunctionOf String Label where
-   s ./\. l = singleton s `and_label` l 
+instance ConjunctionOf String Component where
+   s ./\. l = singleton s `and_component` l 
 
-instance ConjunctionOf Label String where
+instance ConjunctionOf Component String where
    l ./\. s = s ./\. l 
 
 -- | Instances using disjunctions.
 instance ConjunctionOf Disj Disj where
-   d1 ./\. d2 = MkLabel $ MkConj [ d1, d2 ] 
+   d1 ./\. d2 = MkComponent $ MkConj [ d1, d2 ] 
 
-instance ConjunctionOf Disj Label where
-   d ./\. l = (MkLabel $ MkConj [d]) `and_label` l 
+instance ConjunctionOf Disj Component where
+   d ./\. l = (MkComponent $ MkConj [d]) `and_component` l 
 
-instance ConjunctionOf Label Disj where
+instance ConjunctionOf Component Disj where
    l ./\. d = d ./\. l 
 
 instance ConjunctionOf Principal Disj where
@@ -169,13 +169,13 @@ instance ConjunctionOf Disj String where
    
 
 
--- | Empty label.
-(<>) :: Label
-(<>) = emptyLabel
+-- | Empty component (logically this is @True@).
+(<>) :: Component
+(<>) = emptyComponent
 
--- | All label.
-(><) :: Label
-(><) = allLabel
+-- | All component (logically this is @False@).
+(><) :: Component
+(><) = allComponent
 
 ---
 --- Creating 'DCLabel's
@@ -185,22 +185,22 @@ instance ConjunctionOf Disj String where
 class NewDC a b where
   newDC :: a -> b -> DCLabel -- ^ Given two elements create label.
 
-instance NewDC Label Label where
+instance NewDC Component Component where
   newDC l1 l2 = MkDCLabel l1 l2 
 
-instance NewDC Principal Label where
+instance NewDC Principal Component where
   newDC p l = MkDCLabel (singleton p) l 
 
-instance NewDC Label Principal where
+instance NewDC Component Principal where
   newDC l p = MkDCLabel l (singleton p) 
 
 instance NewDC Principal Principal where
   newDC p1 p2 = MkDCLabel (singleton p1) (singleton p2) 
 
-instance NewDC String Label where
+instance NewDC String Component where
   newDC p l = MkDCLabel (singleton p) l 
 
-instance NewDC Label String where
+instance NewDC Component String where
   newDC l p = MkDCLabel l (singleton p) 
 
 instance NewDC String String where
@@ -218,7 +218,7 @@ class NewPriv a where
   newTCBPriv :: TCBPriv -> a -> Maybe TCBPriv
   newTCBPriv p = delegatePriv p . newPriv
 
-instance NewPriv Label where
+instance NewPriv Component where
   newPriv = id
 
 instance NewPriv Principal where

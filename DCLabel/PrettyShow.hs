@@ -3,7 +3,7 @@
 {-# LANGUAGE Trustworthy #-}
 #endif
 {-| This module exports a function 'prettyShow' that pretty prints 'Principal's,
-'Disj'unctions, 'Conj'unctions, 'Label's and 'DCLabel's.
+'Disj'unctions, 'Conj'unctions, 'Component's and 'DCLabel's.
 -}
 module DCLabel.PrettyShow (PrettyShow(..), prettyShow) where
 
@@ -35,13 +35,13 @@ instance PrettyShow Disj where
 		      bracks x = lbrack <> x <> rbrack
 
 instance PrettyShow Conj where 
-	pShow (MkConj [])     = empty
+	pShow (MkConj [])     = text "True"
 	pShow (MkConj (x:[])) = pShow x
 	pShow (MkConj (x:xs)) = pShow x <+> (text "/\\") <+> pShow (MkConj xs)  
         
-instance PrettyShow Label where 
-	pShow MkLabelAll     = braces $ text "ALL"
-	pShow l = let (MkLabel c) = toLNF l
+instance PrettyShow Component where 
+	pShow MkComponentAll     = text "False"
+	pShow l = let (MkComponent c) = toLNF l
                   in braces $ pShow c
 
 instance PrettyShow DCLabel where 

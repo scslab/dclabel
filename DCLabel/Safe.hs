@@ -4,19 +4,19 @@
 #endif
 {-|
 This module exports a safe-subset of "DCLabel.Core",
-implementing Disjunction Category Labels. 
+implementing Disjunction Category Components. 
 The exported functions and constructors may be used by  
 untrusted code, guaranteeing that they cannot perform
 anything unsafe.
 -}
 
 
-module DCLabel.Safe ( -- * DC Labels with EDSL
+module DCLabel.Safe ( -- * DC Components with EDSL
 	              join, meet, top, bottom, canflowto
-	            , Label(..), DCLabel(..), Disj(..), Conj(..)
+	            , Component(..), DCLabel(..), Disj(..), Conj(..)
                     , Principal, principal, name, singleton
                     , listToDisj, disjToList
-		    , listToLabel, labelToList
+		    , listToComponent, componentToList
                     , (.\/.), (./\.)
                     , (<>), (><)
                     , newDC

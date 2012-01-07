@@ -7,17 +7,23 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 {-|
-This module implements Disjunction Category labels.
+This module implements Disjunction Category Labels.
 
-A DCLabel is a pair of 'secrecy' and 'integrity' category sets (of type
-'Label').  A category set (of type 'Conj') is a conjunction of categories
-(of type 'Disj').  Each category, in turn, is a disjunction of 'Principal's,
-where a 'Principal' is just a 'String' whose meaning is up to the application.
+A DCLabel is a pair of 'secrecy' and 'integrity' category sets or
+components, of type 'Component'. Each component is simply a set of
+clauses in propositional logic (without negation).  A component
+can either correspond to the term 'MkComponentAll', representing
+falsehood, or a set of categories (clauses): (of type 'Conj')
+corresponding to the conjunction of ategories (of type 'Disj').
+Each category, in turn, is a disjunction of 'Principal's, where
+a 'Principal' is just a 'ByteString' whose meaning is up to the
+application.
 
-A category imposes an information flow restriction. In the case of secrecy,
-a category restricts who can read, receive, or propagate the information,
-while in the case of integrity it restricts who can modify a piece of
-data. The principals constructing a category are said to /own/ the category.
+A category imposes an information flow restriction. In the case of
+secrecy, a category restricts who can read, receive, or propagate
+the information, while in the case of integrity it restricts who
+can modify a piece of data. The principals constructing a category
+are said to /own/ the category.
 
 For information to flow from a source labeled @L_1@ to a sink @L_2@, the
 restrictions imposed by the categories of @L_2@ must at least as restrictive as
@@ -56,13 +62,13 @@ code as it prevents the creation of arbitrary privileges.
 
 -}
 
-module DCLabel.Core ( -- * Labels 
+module DCLabel.Core ( -- * Components 
 		      -- $labels
-                      Disj(..), Conj(..), Label(..)
-                    , emptyLabel, allLabel
+                      Disj(..), Conj(..), Component(..)
+                    , emptyComponent, allComponent
                     , Lattice(..)
  		    , ToLNF(..)
-                      -- ** DC Labels
+                      -- ** DC Components
                     , DCLabel(..)
                       -- * Principals
                     , Principal(..), principal
@@ -73,10 +79,10 @@ module DCLabel.Core ( -- * Labels
                     , noPriv, rootPrivTCB
                     , delegatePriv, createPrivTCB
                     , CanDelegate(..), Owns(..)
-                      -- * Label/internal operations
-                    , and_label, or_label, cleanLabel, implies
+                      -- * Component/internal operations
+                    , and_component, or_component, cleanComponent, implies
 		    , DisjToFromList(..)
-		    , listToLabel, labelToList
+		    , listToComponent, componentToList
                     ) where
 
 
@@ -84,15 +90,14 @@ module DCLabel.Core ( -- * Labels
 import safe Data.List (nub, sort, (\\))
 import safe Data.Maybe (fromJust)
 import safe Data.Monoid
-import qualified Data.ByteString as B
-import qualified Data.ByteString.Char8 as C
 #else
 import Data.List (nub, sort, (\\))
 import Data.Maybe (fromJust)
 import Data.Monoid
+#endif
+
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as C
-#endif
 
 --
 -- Categories
@@ -108,22 +113,24 @@ newtype Disj = MkDisj { disj :: [Principal] }
 -- | A category set, i.e., a conjunction of disjunctions. 
 -- The empty list '[]' corresponds to the single disjunction of all principals.
 -- In other words, conceptually, @[] =  {[P_1 &#8897; P_2 &#8897; ...]}@
+-- Logically '[]' = @True@.
 newtype Conj = MkConj { conj :: [Disj] }
         deriving (Eq, Ord, Show, Read)
 
 --
--- Labels
+-- Components
 --
 
 {- $labels
-A label is a conjunction of disjunctions of principals. A 'DCLabel' is simply a 
-pair of such labels. Hence, we define almost all operations in terms of this 
-construct, from which the 'DCLabel' implementation follows almost trivially.
-Moreover, we note that secrecy-only and integrity-only labels are implemented 
-in "DCLabel.Secrecy" and "DCLabel.Integrity", respectively.
+   A component is a conjunction of disjunctions of principals. A
+   'DCLabel' is simply a pair of such components. Hence, we define
+   almost all operations in terms of this construct, from which the
+   'DCLabel' implementation follows almost trivially.  Moreover, we
+   note that secrecy-only and integrity-only labels are implemented
+   in "DCLabel.Secrecy" and "DCLabel.Integrity", respectively.
 -}
 
--- | Labels forma a partial order according to the &#8849; relation.
+-- | Labels form a partial order according to the &#8849; relation.
 -- Specifically, this means that for any two labels @L_1@ and @L_2@ there is a 
 -- unique label @L_3 = L_1 &#8852; L_2@, known as the /join/, such that
 -- @L_1 &#8849; L_3@ and @L_2 &#8849; L_3@. Similarly, there is a unique label 
@@ -140,46 +147,48 @@ class Eq a => Lattice a where
   canflowto :: a -> a -> Bool -- ^ Partial order relation, &#8849;
 
 
--- | A label is a conjunction of disjunctions, where @MkLabelAll@ is 
--- the constructor that is associated with the conjunction of all
--- possible disjunctions.
-data Label = MkLabelAll
-           | MkLabel { label :: Conj }
+-- | A components is a conjunction of disjunctions, where @MkComponentAll@ is 
+-- the constructor that is associated with the logical @False@.
+data Component = MkComponentAll
+               | MkComponent { component :: Conj }
      deriving (Show, Read)
 
--- | Labels have a unique LNF (see 'ToLNF') form, and equality testing is
+-- | Components have a unique LNF (see 'ToLNF') form, and equality testing is
 -- perfomed on labels of this form.
-instance Eq Label where
-  (==) MkLabelAll MkLabelAll = True
-  (==) MkLabelAll _ = False
-  (==) _ MkLabelAll = False
-  (==) l1 l2 = (label . toLNF $ l1) == (label . toLNF $ l2)
+instance Eq Component where
+  (==) MkComponentAll MkComponentAll = True
+  (==) MkComponentAll _ = False
+  (==) _ MkComponentAll = False
+  (==) l1 l2 = (component . toLNF $ l1) == (component . toLNF $ l2)
 
--- | A label without any disjunctions or conjunctions. This label, conceptually
--- corresponds to the label consisting of a single category containing all
--- principals. Conceptually,
--- @emptyLabel = \<{[P_1 &#8897; P_2 &#8897; ...]}\>@
-emptyLabel :: Label
-emptyLabel = MkLabel (MkConj [])
+-- | A component without any disjunctions or conjunctions. This
+-- component, conceptually corresponds to the label consisting of
+-- a single category containing all principals. Conceptually (in a
+-- closed-world system),
+-- @emptyComponent = \<{[P_1 &#8897; P_2 &#8897; ...]}\>@.
+-- Logically, of course, this is equivalent to @True@.
+emptyComponent :: Component
+emptyComponent = MkComponent (MkConj [])
 
--- | The dual of 'emptyLabel', 'allLabel' consists of the conjunction of
+-- | The dual of 'emptyComponent', 'allComponent' consists of the conjunction of
 -- all possible disjunctions, i.e., it is the label that implies all
--- other labels. Conceptually,
--- @allLabel = \<{[P_1] &#8896; [P_2] &#8896; ...}\>@
-allLabel :: Label
-allLabel = MkLabelAll
+-- other labels. Conceptually (in a closed-world system),
+-- @allComponent = \<{[P_1] &#8896; [P_2] &#8896; ...}\>@
+-- Logically, of course, this is equivalent to @False@.
+allComponent :: Component
+allComponent = MkComponentAll
 
 -- | Predicate function that returns @True@ if the label corresponds to
--- the 'emptyLabel'.
-isEmptyLabel :: Label -> Bool
-isEmptyLabel MkLabelAll = False
-isEmptyLabel l = and [ null (disj d) | d <- conj (label l) ]
+-- the 'emptyComponent'.
+isEmptyComponent :: Component -> Bool
+isEmptyComponent MkComponentAll = False
+isEmptyComponent l = and [ null (disj d) | d <- conj (component l) ]
 
 -- | Predicate function that retuns @True@ if the label corresponds to
--- the 'allLabel'.
-isAllLabel :: Label -> Bool
-isAllLabel MkLabelAll = True
-isAllLabel _ = False
+-- the 'allComponent'.
+isAllComponent :: Component -> Bool
+isAllComponent MkComponentAll = True
+isAllComponent _ = False
 
 
 --
@@ -187,90 +196,94 @@ isAllLabel _ = False
 --
 
 
--- | Given two labels, take the union of the disjunctions, i.e., simply 
--- perform an \"and\". Note the new label is not necessarily in LNF.
-and_label :: Label -> Label -> Label
-and_label l1 l2 | isAllLabel l1 || isAllLabel l2 = allLabel
-                | otherwise = MkLabel
-                        {label = MkConj $ conj (label l1) ++ conj (label l2)}
+-- | Given two components, take the union of the disjunctions, i.e., simply 
+-- perform an \"and\". Note the new component is not necessarily in LNF.
+and_component :: Component -> Component -> Component
+and_component l1 l2 | isAllComponent l1 || isAllComponent l2 = allComponent
+                    | otherwise = MkComponent {component = MkConj $
+                          conj (component l1) ++ conj (component l2)}
 
--- | Given two labels, perform an \"or\".
--- Note that the new label is not necessarily in LNF.
-or_label :: Label -> Label -> Label 
-or_label l1 l2 | isEmptyLabel l1 || isEmptyLabel l2 = emptyLabel
-               | isAllLabel l2 = l1 
-               | isAllLabel l1 = l2 
-               | otherwise = MkLabel . MkConj $ [ MkDisj (disj d1 ++ disj d2)
-                                                | d1 <- (conj (label l1)) 
-                                                , d2 <- (conj (label l2))
-                                                , not . null . disj $ d1
-                                                , not . null . disj $ d2] 
+-- | Given two components, perform an \"or\".
+-- Note that the new component is not necessarily in LNF.
+or_component :: Component -> Component -> Component 
+or_component l1 l2 | isEmptyComponent l1 || isEmptyComponent l2 = emptyComponent
+                   | isAllComponent l2 = l1 
+                   | isAllComponent l1 = l2 
+                   | otherwise = MkComponent . MkConj $
+                                       [ MkDisj (disj d1 ++ disj d2)
+                                       | d1 <- (conj (component l1)) 
+                                       , d2 <- (conj (component l2))
+                                       , not . null . disj $ d1
+                                       , not . null . disj $ d2] 
 
--- | Determines if a conjunction of disjunctions, i.e., a label, implies
+-- | Determines if a conjunction of disjunctions, i.e., a component, implies
 -- (in the logical sense) a disjunction. In other words, it checks if
 -- d_1 &#8896; ... &#8896; d_n => d_1.
 --
 -- Properties:
 --
---      * &#8704; X, 'allLabel' \``impliesDisj`\` X = True
+--      * &#8704; X, 'allComponent' \``impliesDisj`\` X = True
 --
---      * &#8704; X, X \``impliesDisj`\` 'emptyLabel'  = True
+--      * &#8704; X, X \``impliesDisj`\` 'emptyComponent'  = True
 --
---      * &#8704; X&#8800;'emptyLabel', 'emptyLabel' \``impliesDisj`\` X = False
+--      * &#8704; X&#8800;'emptyComponent', 'emptyComponent' \``impliesDisj`\` X = False
 --
 -- Note that the first two guards are only included 
--- for safety; the function is always called with a non-ALL label and 
+-- for safety; the function is always called with a non-ALL component and 
 -- non-null disjunction.
-impliesDisj :: Label -> Disj -> Bool 
-impliesDisj l d | isAllLabel l = True   -- Asserts 1
+impliesDisj :: Component -> Disj -> Bool 
+impliesDisj l d | isAllComponent l = True   -- Asserts 1
                 | null (disj d) = True  -- Asserts 2
                 | otherwise = or [ and [ e `elem` (disj d) | e <- disj d1 ]
-                                 | d1 <- conj (label l)
-                                 , not (isEmptyLabel l) ] -- Asserts 3
+                                 | d1 <- conj (component l)
+                                 , not (isEmptyComponent l) ] -- Asserts 3
 
--- | Determines if a label implies (in the logical sense) another label. 
+-- | Determines if a component logically implies another component. 
 -- In other words, d_1 &#8896; ... &#8896; d_n => d_1' &#8896; ... &#8896; d_n'.
 --
 -- Properties:
 --
--- 	* &#8704; X, 'allLabel' \``implies`\` X := True
+-- 	* &#8704; X, 'allComponent' \``implies`\` X := True
 --
---      * &#8704; X&#8800;'allLabel', X \``implies`\` 'allLabel' := False
+--      * &#8704; X&#8800;'allComponent', X \``implies`\` 'allComponent' := False
 --
---      * &#8704; X, X \``implies`\` 'emptyLabel' := True
+--      * &#8704; X, X \``implies`\` 'emptyComponent' := True
 --
---      * &#8704; X&#8800;'emptyLabel', 'emptyLabel' \``implies`\` X := False
-implies :: Label -> Label -> Bool 
-implies l1 l2 | isAllLabel l1 = True -- Asserts 1
-              | isAllLabel l2 = False -- Asserts 2
+--      * &#8704; X&#8800;'emptyComponent', 'emptyComponent' \``implies`\` X := False
+implies :: Component -> Component -> Bool 
+implies l1 l2 | isAllComponent l1 = True -- Asserts 1
+              | isAllComponent l2 = False -- Asserts 2
               | otherwise = and [ impliesDisj (toLNF l1) d 
-                                | d <- conj . label . toLNF $ l2 ]
+                                | d <- conj . component . toLNF $ l2 ]
 
 
 -- | Removes any duplicate principals from categories, and any duplicate
--- categories from the label. To return a clean label, it sorts the label
--- and removes empty disjunctions.
-cleanLabel :: Label -> Label
-cleanLabel MkLabelAll = MkLabelAll 
-cleanLabel l = MkLabel . MkConj . sort . nub $
-               [ MkDisj ( (sort . nub) (disj d) ) | d <- conj (label l)
-                                                , not . null $ disj d ] 
--- | Class used to reduce labels to a unique label normal form (LNF), which 
--- corresponds to conjunctive normal form of principals. We use this class 
--- to overload the reduce function used by the 'Label', 'DCLabel', etc.
+-- categories from the component. To return a clean component, it sorts the
+-- component and removes empty disjunctions.
+cleanComponent :: Component -> Component
+cleanComponent MkComponentAll = MkComponentAll 
+cleanComponent l = MkComponent . MkConj . sort . nub $
+               [ MkDisj ( (sort . nub) (disj d) ) | d <- conj (component l)
+                                                  , not . null $ disj d ] 
+
+-- | Class used to reduce labels and components to unique label normal form
+-- (LNF), which corresponds to conjunctive normal form of principals. We use
+-- this class to overload the reduce function used by the 'Component',
+-- 'DCLabel', etc.
 class ToLNF a where
   toLNF :: a -> a
 
--- | Reduce a 'Label' to LNF.
--- First it applies @cleanLabel@ to remove duplicate principals and categories.
--- Following, it removes extraneous/redundant categories. A category is said to
--- be extraneous if there is another category in the label that implies it.
-instance ToLNF Label where
-  toLNF MkLabelAll = MkLabelAll 
-  toLNF l = MkLabel . MkConj $ l' \\ extraneous 
-    where l' = conj . label $ cleanLabel l
+-- | Reduce a 'Component' to LNF.
+-- First it applies @cleanComponent@ to remove duplicate principals
+-- and categories.  Following, it removes extraneous/redundant
+-- categories. A category is said to be extraneous if there is another
+-- category in the component that implies it.
+instance ToLNF Component where
+  toLNF MkComponentAll = MkComponentAll 
+  toLNF l = MkComponent . MkConj $ l' \\ extraneous 
+    where l' = conj . component $ cleanComponent l
           extraneous = [ d2 | d1 <- l', d2 <- l', d1 /= d2
-                            , impliesDisj ((MkLabel . MkConj) [d1]) d2 ]
+                            , impliesDisj ((MkComponent . MkConj) [d1]) d2 ]
 
 --
 -- DC Labels
@@ -282,9 +295,9 @@ instance ToLNF Label where
 --
 
 -- | A @DCLabel@ is a pair of secrecy and integrity category sets, i.e., 
--- a pair of 'Label's.
-data DCLabel = MkDCLabel { secrecy :: Label    -- ^  Integrity category set.
-                         , integrity :: Label  -- ^ Secrecy category set.
+-- a pair of 'Component's.
+data DCLabel = MkDCLabel { secrecy   :: Component -- ^  Integrity category set.
+                         , integrity :: Component -- ^ Secrecy category set.
 			 } 
   deriving (Eq, Show, Read)
 
@@ -296,9 +309,9 @@ instance ToLNF DCLabel where
 
 -- | Elements of 'DCLabel' form a bounded lattice, where:
 --
--- 	* @&#8869; = \<'emptyLabel', 'allLabel'\>@
+-- 	* @&#8869; = \<'emptyComponent', 'allComponent'\>@
 --
--- 	* @&#8868; = \<'allLabel', 'emptyLabel'\>@
+-- 	* @&#8868; = \<'allComponent', 'emptyComponent'\>@
 --
 -- 	* @ \<S_1, I_1\> &#8852; \<S_2, I_2\> = \<S_1 &#8896; S_2, I_1 &#8897; I_2\>@
 --
@@ -306,16 +319,16 @@ instance ToLNF DCLabel where
 --
 -- 	* @ \<S_1, I_1\> &#8849; \<S_2, I_2\> = S_2 => S_1 &#8896; I_1 => I_2@
 instance Lattice DCLabel where
-  bottom = MkDCLabel { secrecy = emptyLabel
-                     , integrity = allLabel }
-  top = MkDCLabel { secrecy = allLabel
-                  , integrity = emptyLabel }
-  join l1 l2 = let s3 = (secrecy l1) `and_label` (secrecy l2)
-                   i3 = (integrity l1) `or_label` (integrity l2)
+  bottom = MkDCLabel { secrecy = emptyComponent
+                     , integrity = allComponent }
+  top = MkDCLabel { secrecy = allComponent
+                  , integrity = emptyComponent }
+  join l1 l2 = let s3 = (secrecy l1) `and_component` (secrecy l2)
+                   i3 = (integrity l1) `or_component` (integrity l2)
                in toLNF $ MkDCLabel { secrecy = s3
                                     , integrity = i3 }
-  meet l1 l2 = let s3 = (secrecy l1) `or_label` (secrecy l2)
-                   i3 = (integrity l1) `and_label` (integrity l2)
+  meet l1 l2 = let s3 = (secrecy l1) `or_component` (secrecy l2)
+                   i3 = (integrity l1) `and_component` (integrity l2)
                in toLNF $ MkDCLabel { secrecy = s3
                                     , integrity = i3 }
   canflowto l1 l2 = let l1' = toLNF l1
@@ -330,8 +343,9 @@ instance Lattice DCLabel where
 
 -- | Principal is a simple string representing a source of authority. Any piece 
 -- of code can create principals, regarless of how untrusted it is. However, 
--- for principals to be used in integrity labels or be ignoerd a corresponding 
--- privilege ('TCBPriv') must be created (by trusted code) or delegated.
+-- for principals to be used in integrity components or be ignoerd a
+-- corresponding privilege ('TCBPriv') must be created (by trusted code) or
+-- delegated.
 newtype Principal = MkPrincipal { name :: B.ByteString }
                   deriving (Eq, Ord, Show, Read)
 
@@ -348,9 +362,9 @@ principal = MkPrincipal
 As previously mentioned privileges allow a piece of code to bypass certain 
 information flow restrictions. Like principals, privileges of type 'Priv'
 may be created by any piece of code. A privilege is simply a conjunction of 
-disjunctions, i.e., a 'Label' where a category consisting of a single principal 
-corresponds to the notion of /owning/ that principal. We, however, allow for 
-the more general notion of ownership of a category as to create a 
+disjunctions, i.e., a 'Component' where a category consisting of a single
+principal corresponds to the notion of /owning/ that principal. We, however,
+allow for the more general notion of ownership of a category as to create a 
 privilege-hierarchy. Specifically, a piece of code exercising a privilege @P@ 
 can always exercise privilege @P'@ (instead), if @P' => P@. This is similar to 
 the DLM notion of \"can act for\", and, as such, we provide a function which 
@@ -368,15 +382,15 @@ Finally, given a set of privileges a piece of code can check if it owns a
 category using the 'owns' function.
 -}
 
--- | Privilege object is just a conjunction of disjunctions, i.e., a 'Label'.
+-- | Privilege object is just a conjunction of disjunctions, i.e., 'Component'.
 -- A trusted privileged object must be introduced by trusted code, after which
 -- trusted privileged objects can be created by delegation.
-data TCBPriv = MkTCBPriv { priv :: Label } 
+data TCBPriv = MkTCBPriv { priv :: Component } 
      deriving (Eq, Show)
 
 -- | Untrusted privileged object, which can be converted to a 'TCBPriv' with
 -- 'delegatePriv'.
-type Priv = Label
+type Priv = Component
 
 -- | Class extending 'Lattice', by allowing for the more relaxed label
 -- comparison  @canflowto_p@.
@@ -388,8 +402,8 @@ class (Lattice a) => RelaxedLattice a where
 instance RelaxedLattice DCLabel where
   canflowto_p p l1 l2 =
     let l1' =  MkDCLabel { secrecy = (secrecy l1)
-                         , integrity = (and_label (priv p) (integrity l1)) }
-        l2' =  MkDCLabel { secrecy = (and_label (priv p) (secrecy l2))
+                         , integrity = (and_component (priv p) (integrity l1)) }
+        l2' =  MkDCLabel { secrecy = (and_component (priv p) (secrecy l2))
                          , integrity = (integrity l2) }
     in canflowto l1' l2' 
 
@@ -405,13 +419,13 @@ delegatePriv tPriv rPriv = let rPriv' = toLNF rPriv
 
 -- | Privilege object corresponding to no privileges.
 noPriv :: TCBPriv
-noPriv = MkTCBPriv { priv = emptyLabel }
+noPriv = MkTCBPriv { priv = emptyComponent }
 
 -- | Privilege object corresponding to the \"root\", or all privileges.
 -- Any other privilege may be delegated using this privilege object and it must
 -- therefore not be exported to untrusted code. 
 rootPrivTCB :: TCBPriv
-rootPrivTCB = MkTCBPriv { priv = allLabel }
+rootPrivTCB = MkTCBPriv { priv = allComponent }
 
 -- | This function creates any privilege object given an untrusted 
 -- privilege 'Priv'. Note that this function should not be exported
@@ -422,7 +436,7 @@ createPrivTCB = fromJust . (delegatePriv rootPrivTCB)
 -- | @TCBPriv@ is an instance of 'Monoid'.
 instance Monoid TCBPriv where
   mempty = noPriv
-  mappend p1 p2 = createPrivTCB $ toLNF ((priv p1) `and_label` (priv p2))
+  mappend p1 p2 = createPrivTCB $ toLNF ((priv p1) `and_component` (priv p2))
 
   		
 -- | Class used for checking if a computation can use a privilege in place of
@@ -455,7 +469,7 @@ class Owns a where
 instance Owns Disj where
   owns p d = priv p `impliesDisj` d 
 
-instance Owns Label where
+instance Owns Component where
   owns p l = priv p `implies` l 
 
 
@@ -481,10 +495,10 @@ instance DisjToFromList B.ByteString where
   listToDisj ps = MkDisj $ map principal ps
   disjToList d = map name $ disj d
 
--- | Given a list of categories, return a label.
-listToLabel :: [Disj] -> Label -- ^ Given list return category.
-listToLabel = MkLabel . MkConj 
+-- | Given a list of categories, return a component.
+listToComponent :: [Disj] -> Component -- ^ Given list return category.
+listToComponent = MkComponent . MkConj 
 
--- | Given a label return a list of categories.
-labelToList :: Label -> [Disj] -- ^ Given category return list.
-labelToList = conj . label
+-- | Given a component return a list of categories.
+componentToList :: Component -> [Disj] -- ^ Given category return list.
+componentToList = conj . component

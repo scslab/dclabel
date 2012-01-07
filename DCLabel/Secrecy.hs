@@ -4,6 +4,7 @@
 #endif
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+-- | This module implements secrecy-only DC Labels.
 module DCLabel.Secrecy ( SLabel(..) ) where
 
 import DCLabel.Core
@@ -19,12 +20,12 @@ instance Lattice SLabel where
   bottom = MkSLabel bottom
   top = MkSLabel top
   join (MkSLabel l1) (MkSLabel l2) = MkSLabel $
-    join l1 { integrity = emptyLabel } l2 { integrity = emptyLabel }
+    join l1 { integrity = emptyComponent } l2 { integrity = emptyComponent }
   meet (MkSLabel l1) (MkSLabel l2) = MkSLabel $ 
-    meet l1 { integrity = emptyLabel } l2 { integrity = emptyLabel }
+    meet l1 { integrity = emptyComponent } l2 { integrity = emptyComponent }
   canflowto (MkSLabel l1) (MkSLabel l2) =
-    canflowto l1 { integrity = emptyLabel } l2 { integrity = emptyLabel }
+    canflowto l1 { integrity = emptyComponent } l2 { integrity = emptyComponent }
 
 instance RelaxedLattice SLabel where
   canflowto_p p (MkSLabel l1) (MkSLabel l2) =
-    canflowto_p p l1 { integrity = emptyLabel } l2 { integrity = emptyLabel }
+    canflowto_p p l1 { integrity = emptyComponent } l2 { integrity = emptyComponent }
