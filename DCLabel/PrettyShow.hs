@@ -42,7 +42,8 @@ instance PrettyShow Conj where
 instance PrettyShow Component where 
 	pShow MkComponentAll     = text "False"
 	pShow l = let (MkComponent c) = toLNF l
-                  in braces $ pShow c
+                      showC = pShow c
+                  in if c == MkConj [] then braces showC else showC
 
 instance PrettyShow DCLabel where 
 	pShow (MkDCLabel s  i) = angle $ pShow s <+> comma <+> pShow i
