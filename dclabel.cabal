@@ -12,11 +12,11 @@ Category:       Security
 Cabal-Version:  >=1.8
 
 Extra-source-files:
-     Examples/ExamplesDCLabels.hs
-     Examples/Labels.hs
-     Examples/ListExamples.hs
-     Examples/UsingEDSL.hs
-     Tests/Main.hs
+     examples/ExamplesDCLabels.hs
+     examples/Labels.hs
+     examples/ListExamples.hs
+     examples/UsingEDSL.hs
+     tests/Tests.hs
 
 Description:
         The /DC Label/ (DCLabel) library provides dynamic information
