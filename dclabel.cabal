@@ -41,7 +41,7 @@ Library
                   cereal >= 0.3.3 && < 0.4,
                   pretty > 1.0.1 && < 2
 
-   ghc-options: -Wall -Werror -fno-warn-orphans
+   ghc-options: -Wall -fno-warn-orphans
 
    Exposed-modules:
        DCLabel.Safe,
