@@ -2,7 +2,9 @@
 #if defined(__GLASGOW_HASKELL__) && (__GLASGOW_HASKELL__ >= 702) && (__GLASGOW_HASKELL__ < 704)
 {-# LANGUAGE SafeImports #-}
 #endif
+#if defined(__GLASGOW_HASKELL__) && (__GLASGOW_HASKELL__ >= 704)
 {-# LANGUAGE Safe #-}
+#endif
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
