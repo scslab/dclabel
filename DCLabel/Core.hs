@@ -3,7 +3,7 @@
 {-# LANGUAGE SafeImports #-}
 #endif
 #if defined(__GLASGOW_HASKELL__) && (__GLASGOW_HASKELL__ >= 704)
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Trustworthy #-}
 #endif
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
