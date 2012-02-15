@@ -10,12 +10,7 @@ module DCLabel.PrettyShow (PrettyShow(..), prettyShow) where
 import DCLabel.Core
 import DCLabel.Secrecy
 import DCLabel.Integrity
-#if defined(__GLASGOW_HASKELL__) && (__GLASGOW_HASKELL__ >= 702)
--- import safe Text.PrettyPrint
 import Text.PrettyPrint
-#else
-import Text.PrettyPrint
-#endif
 
 
 
