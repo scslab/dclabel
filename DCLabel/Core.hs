@@ -74,7 +74,7 @@ module DCLabel.Core ( -- * Components
                       -- ** DC Components
                     , DCLabel(..)
                       -- * Principals
-                    , Principal(..), principal
+                    , Principal(..), CreatePrincipal(..)
                       -- * Privileges
 		      -- $privs
                     , TCBPriv(..), Priv
@@ -356,9 +356,14 @@ newtype Principal = MkPrincipal { name :: B.ByteString }
                   deriving (Eq, Ord, Show, Read)
 
 -- | Generates a principal from an string. 
-principal :: B.ByteString -> Principal 
-principal = MkPrincipal 
+class CreatePrincipal s where
+  principal :: s -> Principal
 
+instance CreatePrincipal B.ByteString where
+  principal = MkPrincipal
+
+instance CreatePrincipal String where
+  principal = MkPrincipal . C.pack
 
 --
 -- Privileges
