@@ -75,6 +75,7 @@ module DCLabel.NanoEDSL ( -- * Operators
 import DCLabel.Core
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as C
+import Data.String
 
 infixl 7 .\/.
 infixl 6 ./\.
@@ -226,3 +227,10 @@ instance NewPriv Principal where
 
 instance NewPriv String where
   newPriv p = singleton p
+
+--
+-- Instances of IsString
+--
+
+instance IsString Principal where
+  fromString = principal . C.pack
