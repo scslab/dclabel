@@ -21,7 +21,7 @@ module DCLabel.Safe ( -- * DC Components with EDSL
                     , (<>), (><)
                     , newDC
                       -- * Privilegies 
-                    , TCBPriv, Priv
+                    , TCBPriv, priv, Priv
                     , canflowto_p
                     , delegatePriv
                     , canDelegate, owns
