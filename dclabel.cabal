@@ -32,7 +32,7 @@ Description:
 
 Source-repository head
   Type:     git
-  Location: http://www.scs.stanford.edu/~deian/dclabels/dclabel.git
+  Location: http://www.github.com/scslab/dclabel.git
 
 
 Library 
